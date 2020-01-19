@@ -8,5 +8,8 @@
 - Linux
 
 ## Dependencies
-- libnetfilter_queue: For change packet data in-path.
-- libglog: For logging.
+- [libnetfilter_queue]: For change packet data in-path.
+- [libglog]: For logging.
+
+[libnetfilter_queue]: https://netfilter.org/projects/libnetfilter_queue/
+[libglog]: https://github.com/google/glog

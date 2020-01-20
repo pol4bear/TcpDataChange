@@ -13,8 +13,7 @@ SOURCES += \
     Src/pol4b_ip.cpp \
     Src/pol4b_mac.cpp \
     Src/pol4b_tcp.cpp \
-    Src/pol4b_util.cpp \
-    Src/stdafx.cpp
+    Src/pol4b_util.cpp
 
 HEADERS += \
     Src/LogManager.h \
@@ -24,5 +23,4 @@ HEADERS += \
     Src/pol4b_ip.h \
     Src/pol4b_mac.h \
     Src/pol4b_tcp.h \
-    Src/pol4b_util.h \
-    Src/stdafx.h
+    Src/pol4b_util.h

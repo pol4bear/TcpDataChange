@@ -33,7 +33,7 @@ void *NetfilterManager::loop(void *obj_pointer) {
             break;
         }
     }
-    catch(int error_code) { handle->on_error(error_code); }
+    catch(Error::Code error_code) { handle->on_error(error_code); }
 
     return nullptr;
 }
@@ -45,25 +45,25 @@ bool NetfilterManager::is_started() {
 void NetfilterManager::start(uint16_t queue) {
     try {
         start(DEFAULT_ADDRESS_FAMILY, queue, nullptr, nullptr);
-    } catch(int error_code) { throw error_code; }
+    } catch(Error::Code error_code) { throw error_code; }
 }
 
 void NetfilterManager::start(nfq_callback *callback, void *data) {
     try {
         start(DEFAULT_ADDRESS_FAMILY, DEFAULT_QUEUE_NUM, callback, data);
-    } catch(int error_code) { throw error_code; }
+    } catch(Error::Code error_code) { throw error_code; }
 }
 
 void NetfilterManager::start(uint16_t address_family, uint16_t queue) {
     try {
         start(address_family, queue, nullptr, nullptr);
-    } catch(int error_code) { throw error_code; }
+    } catch(Error::Code error_code) { throw error_code; }
 }
 
 void NetfilterManager::start(uint16_t queue, nfq_callback *callback, void *data) {
     try {
         start(DEFAULT_ADDRESS_FAMILY, queue, callback, data);
-    } catch(int error_code) { throw error_code; }
+    } catch(Error::Code error_code) { throw error_code; }
 }
 
 void NetfilterManager::start(uint16_t address_family, uint16_t queue, nfq_callback *callback, void *data) {
@@ -76,7 +76,7 @@ void NetfilterManager::start(uint16_t address_family, uint16_t queue, nfq_callba
             throw Error::PTHREAD_CREATE;
         if (pthread_detach(job) != 0)
             throw Error::PTHREAD_DETACH;
-    } catch(int error_code) { throw error_code; }
+    } catch(Error::Code error_code) { throw error_code; }
 
     flag_started = true;
 }

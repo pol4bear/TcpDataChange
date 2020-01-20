@@ -41,76 +41,39 @@ void TcpFlowManager::assign(iphdr *ip_header, tcphdr *tcp_header) {
     auto value_iterator = flow_map.find(flow_key);
     TcpFlowValue *flow_value = &value_iterator->second;
 
-    if (tcp_header->syn) {
-        if (!tcp_header->ack) {
-            if (value_iterator != flow_map.end()) *flow_value = TcpFlowValue();
-            else flow_value = &flow_map[flow_key];
+    if (value_iterator == flow_map.end() && (!tcp_header->fin && !tcp_header->rst)) {
+        flow_value = &flow_map[flow_key];
 
-            if (!is_reversed) {
-                flow_value->modulated.first = ntohl(tcp_header->th_seq);
-                flow_value->real.first = ntohl(tcp_header->th_seq);
-            }
-            else {
-                flow_value->modulated.second = ntohl(tcp_header->th_seq);
-                flow_value->real.second = ntohl(tcp_header->th_seq);
-            }
+        if (!is_reversed)
+            flow_value->set_data(tcp_header->th_seq, tcp_header->th_ack);
+        else
+            flow_value->set_data(tcp_header->th_ack, tcp_header->th_seq);
+    }
+    else if(payload_length == 0) {
+        if (tcp_header->syn) {
+            if (!is_reversed)
+                flow_value->set_data(tcp_header->th_seq, tcp_header->th_ack);
+            else
+                flow_value->set_data(tcp_header->th_ack, tcp_header->th_seq);
         }
-        else {
+        else if(tcp_header->fin) {
+            if(flow_value->close_wait) flow_value->close = true;
+            else flow_value->close_wait = true;
+        }
+        else if(tcp_header->rst) {
+            flow_value->close_wait = true;
+            flow_value->close = true;
+        }
+        else if(tcp_header->ack) {
             if (!is_reversed) {
-                flow_value->modulated.first = ntohl(tcp_header->th_seq);
-                flow_value->real.first = ntohl(tcp_header->th_seq);
                 flow_value->modulated.second++;
                 flow_value->real.second++;
             }
             else {
-                flow_value->modulated.second = ntohl(tcp_header->th_seq);
-                flow_value->real.second = ntohl(tcp_header->th_seq);
                 flow_value->modulated.first++;
                 flow_value->real.first++;
             }
         }
-
-        flow_value->handshake = true;
-    }
-    else if(value_iterator != flow_map.end() && tcp_header->fin) {
-        if (flow_value->close_wait) {
-            flow_value->close = true;
-        }
-        else {
-            flow_value->close_wait = true;
-        }
-    }
-    else if(value_iterator != flow_map.end() && payload_length == 0 && tcp_header->ack) {
-        if (flow_value->handshake){
-            flow_value->handshake = false;
-        }
-
-        if (!is_reversed) {
-            flow_value->modulated.second++;
-            flow_value->real.second++;
-        }
-        else {
-            flow_value->modulated.first++;
-            flow_value->real.first++;
-        }
-    }
-    else if(value_iterator == flow_map.end()) {
-        flow_value = &flow_map[flow_key];
-        if (!is_reversed) {
-            flow_value->modulated.first = ntohl(tcp_header->th_seq);
-            flow_value->real.first = ntohl(tcp_header->th_seq);
-            flow_value->modulated.second = ntohl(tcp_header->th_ack);
-            flow_value->real.second = ntohl(tcp_header->th_ack);
-        }
-        else {
-            flow_value->modulated.second = ntohl(tcp_header->th_seq);
-            flow_value->real.second = ntohl(tcp_header->th_seq);
-            flow_value->modulated.first = ntohl(tcp_header->th_ack);
-            flow_value->real.first = ntohl(tcp_header->th_ack);
-        }
-
-        if (tcp_header->fin)
-            flow_value->close_wait = true;
     }
 }
 
@@ -190,9 +153,18 @@ bool TcpFlowManager::TcpFlowKey::operator<(const TcpFlowKey &rhs) const {
     return memcmp(this, &rhs, sizeof(TcpFlowKey)) < 0;
 }
 
-TcpFlowManager::TcpFlowValue::TcpFlowValue() : modulated(TcpSeqPair(0, 0)), real(TcpSeqPair(0, 0)), handshake(false), close_wait(false), close(false) {}
+TcpFlowManager::TcpFlowValue::TcpFlowValue() : modulated(TcpSeqPair(0, 0)), real(TcpSeqPair(0, 0)), close_wait(false), close(false) {}
 
-TcpFlowManager::TcpFlowValue::TcpFlowValue(tcp_seq start_seq) : modulated(TcpSeqPair(start_seq, 0)), real(TcpSeqPair(start_seq, 0)), handshake(false), close_wait(false), close(false) {}
+TcpFlowManager::TcpFlowValue::TcpFlowValue(tcp_seq start_seq) : modulated(TcpSeqPair(start_seq, 0)), real(TcpSeqPair(start_seq, 0)), close_wait(false), close(false) {}
 
-TcpFlowManager::TcpFlowValue::TcpFlowValue(tcp_seq start_seq, tcp_seq start_ack) : modulated(TcpSeqPair(start_seq, start_ack)), real(TcpSeqPair(start_seq, start_ack)), handshake(false), close_wait(false), close(false) {}
+TcpFlowManager::TcpFlowValue::TcpFlowValue(tcp_seq start_seq, tcp_seq start_ack) : modulated(TcpSeqPair(start_seq, start_ack)), real(TcpSeqPair(start_seq, start_ack)), close_wait(false), close(false) {}
+
+void TcpFlowManager::TcpFlowValue::set_data(tcp_seq seq, tcp_seq ack) {
+    seq = ntohl(seq);
+    ack = ntohl(ack);
+    real.first = seq;
+    modulated.first = seq;
+    real.second = ack;
+    modulated.second = ack;
+}
 }

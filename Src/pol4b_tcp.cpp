@@ -81,12 +81,12 @@ void TcpPacket::compute_tcp_checksum() {
 void TcpPacket::parse_tcp_packet() {
     tail = packet + packet_length - 1;
     ip_header = (iphdr*)packet;
+
+    if (ip_header->protocol != IPPROTO_TCP) return;
+
     tcp_header = TcpUtil::get_tcp_header(ip_header);
     payload = TcpUtil::get_tcp_payload(tcp_header, tail);
     payload_length = TcpUtil::get_tcp_payload_length(ip_header, tcp_header);
-
-    if(payload_length > 0 && payload == nullptr) flag_parsed = false;
-
     src_ip = Ip(ip_header->saddr);
     src_port = tcp_header->source;
     dst_ip = Ip(ip_header->daddr);

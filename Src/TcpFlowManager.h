@@ -59,12 +59,12 @@ public:
         TcpFlowValue(tcp_seq start_seq);
         TcpFlowValue(tcp_seq start_seq, tcp_seq start_ack);
 
+        void set_data(tcp_seq seq, tcp_seq ack);
+
         TcpSeqPair modulated;
         TcpSeqPair real;
-        bool handshake;
         bool close_wait;
         bool close;
-        bool erase;
     };
 };
 }

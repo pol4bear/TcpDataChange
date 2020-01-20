@@ -24,10 +24,7 @@ int TcpDataChanger::data_change(nfq_q_handle *queue_handle, nfgenmsg *message, n
         iphdr *ip_header = tcp_packet.ip_header;
         tcphdr *tcp_header = tcp_packet.tcp_header;
 
-
-
-        //if(!(Ip(tcp_packet.ip_header->saddr) == "175.213.35.39") && !(Ip(tcp_packet.ip_header->daddr) == "175.213.35.39")) return nfq_set_verdict(queue_handle, ntohl(packet_header->packet_id), NF_ACCEPT, 0, nullptr);
-
+        if(!(Ip(tcp_packet.ip_header->saddr) == "175.213.35.39") && !(Ip(tcp_packet.ip_header->daddr) == "175.213.35.39")) return nfq_set_verdict(queue_handle, ntohl(packet_header->packet_id), NF_ACCEPT, 0, nullptr);
 
         flow_manager.assign(tcp_packet.ip_header, tcp_packet.tcp_header);
 
@@ -37,7 +34,6 @@ int TcpDataChanger::data_change(nfq_q_handle *queue_handle, nfgenmsg *message, n
             seq = tcp_header->th_seq;
             ack = tcp_header->th_ack;
         }
-
 
         list<uint8_t> payload(tcp_packet.payload, tcp_packet.payload + tcp_packet.payload_length);
         uint32_t left_bytes = tcp_packet.payload_length;
@@ -59,11 +55,11 @@ int TcpDataChanger::data_change(nfq_q_handle *queue_handle, nfgenmsg *message, n
             }
         }
 
-        tcp_packet.tcp_header->seq = htonl(seq);
-        tcp_packet.tcp_header->th_ack = htonl(ack);
+        tcp_header->seq = htonl(seq);
+        tcp_header->th_ack = htonl(ack);
         flow_manager.modulate(ip_header, tcp_header, payload.size());
         tcp_packet.set_payload(payload);
-        return nfq_set_verdict(queue_handle, ntohl(packet_header->packet_id), NF_ACCEPT, tcp_packet.packet_length, tcp_packet.packet);
+       return nfq_set_verdict(queue_handle, ntohl(packet_header->packet_id), NF_ACCEPT, tcp_packet.packet_length, tcp_packet.packet);
     }
 
     return nfq_set_verdict(queue_handle, ntohl(packet_header->packet_id), NF_ACCEPT, 0, nullptr);

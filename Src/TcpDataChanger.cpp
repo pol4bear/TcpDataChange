@@ -72,16 +72,21 @@ bool TcpDataChanger::is_started() {
 void TcpDataChanger::start(uint16_t queue) {
     try {
         netfilter_manager.start(queue, data_change, &word_map);
-    } catch(int error_code) { throw error_code; }
+    } catch(NetfilterManager::Error::Code error_code) { on_error(error_code); }
 }
 
 void TcpDataChanger::start(uint16_t address_family, uint16_t queue) {
     try {
         netfilter_manager.start(address_family, queue, data_change, &word_map);
-    } catch(int error_code) { throw error_code; }
+    } catch(NetfilterManager::Error::Code error_code) { on_error(error_code); }
 }
 
 void TcpDataChanger::stop() {
     netfilter_manager.stop();
+}
+
+void TcpDataChanger::on_error(int error_code) {
+    if (cb_on_error != nullptr)
+        cb_on_error(error_code);
 }
 }

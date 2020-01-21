@@ -11,21 +11,20 @@ bool IpPortPair::operator<(const IpPortPair &rhs) {
 
 TcpFlowManager::TcpFlowManager() {}
 
-bool TcpFlowManager::get_sequence_numbers(tcp_seq &seq, tcp_seq &ack, iphdr *ip_header, tcphdr *tcp_header) {
-    bool is_reversed = Ip(ip_header->saddr) < Ip(ip_header->daddr);
-    TcpFlowKey flow_key(ip_header, tcp_header);
+bool TcpFlowManager::get_sequence_diffs(tcp_seq &seq_diff, tcp_seq &ack_diff, IpPortPair src, IpPortPair dst) {
+    bool is_reversed = dst.ip < src.ip;
+    TcpFlowKey flow_key = is_reversed ? TcpFlowKey(dst, src) : TcpFlowKey(src, dst);
     TcpFlowValue flow_value;
 
-    if(!get_flow_value(flow_key, flow_value))
-        return false;
+    if(!get_flow_value(flow_key, flow_value)) return false;
 
     if(!is_reversed) {
-        seq = flow_value.modulated.first;
-        ack = flow_value.real.second;
+        seq_diff = htonl(flow_value.seq_diff);
+        ack_diff = htonl(flow_value.ack_diff);
     }
     else {
-        seq =  flow_value.modulated.second;
-        ack = flow_value.real.first;
+        seq_diff = htonl(flow_value.seq_diff);
+        ack_diff = htonl(flow_value.ack_diff);
     }
 
     if (flow_value.close)
@@ -36,94 +35,35 @@ bool TcpFlowManager::get_sequence_numbers(tcp_seq &seq, tcp_seq &ack, iphdr *ip_
 
 void TcpFlowManager::assign(iphdr *ip_header, tcphdr *tcp_header) {
     uint32_t payload_length = TcpUtil::get_tcp_payload_length(ip_header, tcp_header);
-    bool is_reversed = Ip(ip_header->saddr) < Ip(ip_header->daddr);
     TcpFlowKey flow_key(ip_header, tcp_header);
     auto value_iterator = flow_map.find(flow_key);
     TcpFlowValue *flow_value = &value_iterator->second;
 
-    if (value_iterator == flow_map.end() && (!tcp_header->fin && !tcp_header->rst)) {
-        flow_value = &flow_map[flow_key];
-
-        if (!is_reversed)
-            flow_value->set_data(tcp_header->th_seq, tcp_header->th_ack);
-        else
-            flow_value->set_data(tcp_header->th_ack, tcp_header->th_seq);
-    }
+    if (value_iterator == flow_map.end() && (!tcp_header->fin && !tcp_header->rst)) flow_value = &flow_map[flow_key];
     else if(payload_length == 0) {
-        if (tcp_header->syn) {
-            if (!is_reversed)
-                flow_value->set_data(tcp_header->th_seq, tcp_header->th_ack);
-            else
-                flow_value->set_data(tcp_header->th_ack, tcp_header->th_seq);
-        }
-        else if(tcp_header->fin) {
-            if(flow_value->close_wait) flow_value->close = true;
+        if(tcp_header->fin) {
+            if (flow_value->close_wait) flow_value->close = true;
             else flow_value->close_wait = true;
         }
         else if(tcp_header->rst) {
             flow_value->close_wait = true;
             flow_value->close = true;
         }
-        else if(tcp_header->ack) {
-            if (!is_reversed) {
-                flow_value->modulated.second++;
-                flow_value->real.second++;
-            }
-            else {
-                flow_value->modulated.first++;
-                flow_value->real.first++;
-            }
-        }
     }
 }
 
-bool TcpFlowManager::increase(iphdr *ip_header, tcphdr *tcp_header, uint32_t payload_size) {
-    bool is_reversed = Ip(ip_header->saddr) < Ip(ip_header->daddr);
-    TcpFlowKey flow_key(ip_header, tcp_header);
-    if (auto flow_pair = flow_map.find(flow_key); payload_size != 0 && flow_pair != flow_map.end()) {
-        TcpFlowValue &flow_value = flow_pair->second;
-
-        if (!is_reversed) {
-            flow_value.modulated.second += payload_size - 1;
-            flow_value.real.second += payload_size - 1;
-        }
-        else {
-            flow_value.modulated.first += payload_size - 1;
-            flow_value.real.first += payload_size - 1;
-        }
-
-        return true;
-    }
-
-    return false;
+bool TcpFlowManager::apply(IpPortPair src, IpPortPair dst, int size) {
+    if (size == 0) return true;
+    bool is_reversed = dst.ip < src.ip;
+    TcpFlowKey flow_key = is_reversed ? TcpFlowKey(dst, src) : TcpFlowKey(src, dst);
+    auto value_iterator = flow_map.find(flow_key);
+    if (value_iterator == flow_map.end()) return false;
+    if (!is_reversed) value_iterator->second.seq_diff += size;
+    else value_iterator->second.ack_diff += size;
+    return true;
 }
 
-bool TcpFlowManager::modulate(iphdr *ip_header, tcphdr *tcp_header, uint32_t payload_size) {
-    if (tcp_header->fin) return false;
-
-
-    bool is_reversed = Ip(ip_header->saddr) < Ip(ip_header->daddr);
-    TcpFlowKey flow_key(ip_header, tcp_header);
-    int original_payload_size = TcpUtil::get_tcp_payload_length(ip_header, tcp_header);
-
-    if (auto flow_pair = flow_map.find(flow_key); flow_pair != flow_map.end()) {
-        TcpFlowValue &flow_value = flow_pair->second;
-
-        if (!is_reversed) {
-            flow_value.real.first += original_payload_size - (original_payload_size == 0 ? 0 : 1);
-            flow_value.modulated.first += payload_size - (payload_size == 0 ? 0 : 1);
-        }
-        else {
-            flow_value.real.second += original_payload_size - (original_payload_size == 0 ? 0 : 1);
-            flow_value.modulated.second += payload_size - (payload_size == 0 ? 0 : 1);
-        }
-        return true;
-    }
-
-    return false;
-}
-
-bool TcpFlowManager::get_flow_value(TcpFlowKey flow_key, TcpFlowValue &flow_value) {
+bool TcpFlowManager::get_flow_value(const TcpFlowKey &flow_key, TcpFlowValue &flow_value) {
     if (auto flow_pair = flow_map.find(flow_key); flow_pair != flow_map.end()) {
         flow_value =  flow_pair->second;
         return true;
@@ -153,18 +93,9 @@ bool TcpFlowManager::TcpFlowKey::operator<(const TcpFlowKey &rhs) const {
     return memcmp(this, &rhs, sizeof(TcpFlowKey)) < 0;
 }
 
-TcpFlowManager::TcpFlowValue::TcpFlowValue() : modulated(TcpSeqPair(0, 0)), real(TcpSeqPair(0, 0)), close_wait(false), close(false) {}
+TcpFlowManager::TcpFlowValue::TcpFlowValue() : seq_diff(0), ack_diff(0), close_wait(false), close(false) {}
 
-TcpFlowManager::TcpFlowValue::TcpFlowValue(tcp_seq start_seq) : modulated(TcpSeqPair(start_seq, 0)), real(TcpSeqPair(start_seq, 0)), close_wait(false), close(false) {}
+TcpFlowManager::TcpFlowValue::TcpFlowValue(tcp_seq start_seq) : seq_diff(0), ack_diff(0), close_wait(false), close(false) {}
 
-TcpFlowManager::TcpFlowValue::TcpFlowValue(tcp_seq start_seq, tcp_seq start_ack) : modulated(TcpSeqPair(start_seq, start_ack)), real(TcpSeqPair(start_seq, start_ack)), close_wait(false), close(false) {}
-
-void TcpFlowManager::TcpFlowValue::set_data(tcp_seq seq, tcp_seq ack) {
-    seq = ntohl(seq);
-    ack = ntohl(ack);
-    real.first = seq;
-    modulated.first = seq;
-    real.second = ack;
-    modulated.second = ack;
-}
+TcpFlowManager::TcpFlowValue::TcpFlowValue(tcp_seq start_seq, tcp_seq start_ack) : seq_diff(0), ack_diff(0), close_wait(false), close(false) {}
 }

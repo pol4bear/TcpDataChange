@@ -37,7 +37,7 @@ uint32_t TcpUtil::get_tcp_payload_length(iphdr *ip_header, tcphdr *tcp_header) {
 
 TcpPacket::TcpPacket() : packet(nullptr), packet_length(0), tail(nullptr),
     ip_header(nullptr), tcp_header(nullptr), payload(nullptr), payload_length(0),
-    src_ip(), src_port(0), dst_ip(), dst_port(0), flag_parsed(false) {}
+    src(), dst(), flag_parsed(false) {}
 
 TcpPacket::TcpPacket(uint8_t *packet_in, uint32_t packet_length_in) : packet_length(packet_length_in), flag_parsed(false) {
     packet = packet_in;
@@ -54,10 +54,11 @@ TcpPacket::TcpPacket(const TcpPacket &tcp_packet) : packet_length(tcp_packet.pac
 
 bool TcpPacket::is_parsed() { return flag_parsed; }
 
-void TcpPacket::set_payload(list<uint8_t> payload_in) {
+void TcpPacket::set_payload(const list<uint8_t> &payload_in) {
     int gap = payload_in.size() - payload_length;
+    if (gap >= 0) ip_header->tot_len += htons(gap);
+    else ip_header->tot_len -= htons(gap);
     packet_length += gap;
-    ip_header->tot_len += gap;
     payload_length += gap;
     if (payload_length != payload_in.size()) packet = (uint8_t*)realloc(packet, packet_length);
     copy(payload_in.begin(), payload_in.end(), payload);
@@ -87,10 +88,8 @@ void TcpPacket::parse_tcp_packet() {
     payload_length = TcpUtil::get_tcp_payload_length(ip_header, tcp_header);
     if(payload_length > 0) payload = TcpUtil::get_tcp_payload(tcp_header, tail);
     else payload = nullptr;
-    src_ip = Ip(ip_header->saddr);
-    src_port = tcp_header->source;
-    dst_ip = Ip(ip_header->daddr);
-    dst_port = tcp_header->dest;
+    src = IpPortPair(ip_header->saddr, ntohs(tcp_header->source));
+    dst = IpPortPair(ip_header->daddr, ntohs(tcp_header->dest));
     flag_parsed = true;
 }
 }

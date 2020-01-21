@@ -18,7 +18,10 @@ int main(int argc, char *argv[]) {
 
     TcpDataChanger data_changer(on_error);
     data_changer.word_map["hello"] = "Hello2";
-    data_changer.word_map["hacking"] = "Hacking2";
+    data_changer.word_map["hacking"] = "Hacking";
+    data_changer.word_map["About SK"] = "About KT";
+    data_changer.word_map["[SK"] = "[KT";
+
 
     try {
         data_changer.start(queue_number);

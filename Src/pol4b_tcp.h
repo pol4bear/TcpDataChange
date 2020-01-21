@@ -16,6 +16,18 @@ public:
     static uint32_t get_tcp_payload_length(iphdr *ip_header, tcphdr *tcp_header);
 };
 
+class IpPortPair {
+public:
+    IpPortPair();
+    IpPortPair(Ip ip_in, uint16_t port_in);
+
+    Ip ip;
+    uint16_t port;
+
+public:
+    bool operator<(const IpPortPair &rhs);
+};
+
 class TcpPacket {
 public:
     TcpPacket();
@@ -30,13 +42,11 @@ public:
     tcphdr *tcp_header;
     uint8_t *payload;
     uint32_t payload_length;
-    Ip src_ip;
-    uint16_t src_port;
-    Ip dst_ip;
-    uint16_t dst_port;
+    IpPortPair src;
+    IpPortPair dst;
 
     bool is_parsed();
-    void set_payload(std::list<uint8_t> payload_in);
+    void set_payload(const std::list<uint8_t> &payload_in);
 
     void compute_all_checksum();
     void compute_ip_checksum();

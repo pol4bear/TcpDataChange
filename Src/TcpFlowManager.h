@@ -7,18 +7,6 @@
 namespace pol4b {
 using TcpSeqPair = std::pair<tcp_seq, tcp_seq>;
 
-class IpPortPair {
-public:
-    IpPortPair();
-    IpPortPair(Ip ip_in, uint16_t port_in);
-
-    Ip ip;
-    uint16_t port;
-
-public:
-    bool operator<(const IpPortPair &rhs);
-};
-
 class TcpFlowManager {
 public:
     class TcpFlowKey;
@@ -28,16 +16,15 @@ public:
 public:
     TcpFlowManager();
 
-    bool get_sequence_numbers(tcp_seq &seq, tcp_seq &ack, iphdr *ip_header, tcphdr *tcp_header);
+    bool get_sequence_diffs(tcp_seq &seq_diff, tcp_seq &ack_diff, IpPortPair src, IpPortPair dst);
 
     void assign(iphdr *ip_header, tcphdr *tcp_header);
-    bool increase(iphdr *ip_header, tcphdr *tcp_header, uint32_t payload_size);
-    bool modulate(iphdr *ip_header, tcphdr *tcp_header, uint32_t payload_size);
+    bool apply(IpPortPair src, IpPortPair dst, int size);
 
 private:
     TcpFlowMap flow_map;
 
-    bool get_flow_value(TcpFlowKey flow_key, TcpFlowValue &flow_value);
+    bool get_flow_value(const TcpFlowKey &flow_key, TcpFlowValue &flow_value);
 
 public:
     class TcpFlowKey {
@@ -59,10 +46,8 @@ public:
         TcpFlowValue(tcp_seq start_seq);
         TcpFlowValue(tcp_seq start_seq, tcp_seq start_ack);
 
-        void set_data(tcp_seq seq, tcp_seq ack);
-
-        TcpSeqPair modulated;
-        TcpSeqPair real;
+        int seq_diff;
+        int ack_diff;
         bool close_wait;
         bool close;
     };

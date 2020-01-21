@@ -26,10 +26,9 @@ uint8_t *TcpUtil::get_tcp_payload(tcphdr *tcp_header, uint8_t *packet_tail) {
     uint32_t payload_length = tcp_header->doff * 4;
     uint8_t *payload_entry = (uint8_t*)tcp_header + payload_length;
 
-    if (payload_length > sizeof(tcphdr)) return nullptr;
+    if (payload_length < sizeof(tcphdr)) return nullptr;
     if (payload_entry > packet_tail) return nullptr;
     return payload_entry;
-
 }
 
 uint32_t TcpUtil::get_tcp_payload_length(iphdr *ip_header, tcphdr *tcp_header) {
@@ -85,8 +84,9 @@ void TcpPacket::parse_tcp_packet() {
     if (ip_header->protocol != IPPROTO_TCP) return;
 
     tcp_header = TcpUtil::get_tcp_header(ip_header);
-    payload = TcpUtil::get_tcp_payload(tcp_header, tail);
     payload_length = TcpUtil::get_tcp_payload_length(ip_header, tcp_header);
+    if(payload_length > 0) payload = TcpUtil::get_tcp_payload(tcp_header, tail);
+    else payload = nullptr;
     src_ip = Ip(ip_header->saddr);
     src_port = tcp_header->source;
     dst_ip = Ip(ip_header->daddr);

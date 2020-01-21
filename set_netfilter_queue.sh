@@ -9,6 +9,6 @@ then
 fi
 
 sudo iptables -F
-sudo iptables -A OUTPUT -j NFQUEUE --queue-num $QUEUE_NUM
-sudo iptables -A INPUT -j NFQUEUE --queue-num $QUEUE_NUM
+sudo iptables -A OUTPUT -p tcp -j NFQUEUE --queue-num $QUEUE_NUM
+sudo iptables -A INPUT -p tcp -j NFQUEUE --queue-num $QUEUE_NUM
 

@@ -33,7 +33,7 @@ int TcpDataChanger::data_change(nfq_q_handle *queue_handle, nfgenmsg *message, n
         if(!flow_manager.get_sequence_numbers(seq, ack, ip_header, tcp_header)) {
             seq = tcp_header->th_seq;
             ack = tcp_header->th_ack;
-        }
+        } 
 
         list<uint8_t> payload(tcp_packet.payload, tcp_packet.payload + tcp_packet.payload_length);
         uint32_t left_bytes = tcp_packet.payload_length;

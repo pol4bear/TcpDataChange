@@ -24,8 +24,6 @@ int TcpDataChanger::data_change(nfq_q_handle *queue_handle, nfgenmsg *message, n
         iphdr *ip_header = tcp_packet.ip_header;
         tcphdr *tcp_header = tcp_packet.tcp_header;
 
-        if(!(Ip(tcp_packet.ip_header->saddr) == "175.213.35.39") && !(Ip(tcp_packet.ip_header->daddr) == "175.213.35.39")) return nfq_set_verdict(queue_handle, ntohl(packet_header->packet_id), NF_ACCEPT, 0, nullptr);
-
         flow_manager.assign(tcp_packet.ip_header, tcp_packet.tcp_header);
 
         tcp_seq seq = 0;

@@ -44,34 +44,34 @@ bool NetfilterManager::is_started() {
 
 void NetfilterManager::start(uint16_t queue) {
     try {
-        start(DEFAULT_ADDRESS_FAMILY, queue, nullptr, nullptr);
+        start(queue, nullptr, nullptr, DEFAULT_ADDRESS_FAMILY);
     } catch(Error::Code error_code) { throw error_code; }
 }
 
 void NetfilterManager::start(nfq_callback *callback, void *data) {
     try {
-        start(DEFAULT_ADDRESS_FAMILY, DEFAULT_QUEUE_NUM, callback, data);
+        start(DEFAULT_QUEUE_NUM, callback, data, DEFAULT_ADDRESS_FAMILY);
     } catch(Error::Code error_code) { throw error_code; }
 }
 
-void NetfilterManager::start(uint16_t address_family, uint16_t queue) {
+void NetfilterManager::start(uint16_t queue, uint16_t address_family) {
     try {
-        start(address_family, queue, nullptr, nullptr);
+        start(queue, nullptr, nullptr, address_family);
     } catch(Error::Code error_code) { throw error_code; }
 }
 
 void NetfilterManager::start(uint16_t queue, nfq_callback *callback, void *data) {
     try {
-        start(DEFAULT_ADDRESS_FAMILY, queue, callback, data);
+        start(queue, callback, data, DEFAULT_ADDRESS_FAMILY);
     } catch(Error::Code error_code) { throw error_code; }
 }
 
-void NetfilterManager::start(uint16_t address_family, uint16_t queue, nfq_callback *callback, void *data) {
+void NetfilterManager::start(uint16_t queue, nfq_callback *callback, void *data, uint16_t address_family) {
     if (flag_started)
         throw Error::ALREADY_STARTED;
 
     try {
-        open(address_family, queue, callback, data);
+        open(queue, callback, data, address_family);
         if (pthread_create(&job, nullptr, loop, this) != 0)
             throw Error::PTHREAD_CREATE;
         if (pthread_detach(job) != 0)
@@ -85,7 +85,7 @@ void NetfilterManager::stop() {
     flag_started = false;
 }
 
-void NetfilterManager::open(uint16_t address_family, uint16_t queue, nfq_callback *callback, void *data) {
+void NetfilterManager::open(uint16_t queue, nfq_callback *callback, void *data, uint16_t address_family) {
     handle = nfq_open();
     if (handle == nullptr)
         throw Error::NFQ_OPEN;

@@ -40,8 +40,8 @@ public:
     void start(uint16_t queue = DEFAULT_QUEUE_NUM);
     void start(nfq_callback *callback, void *data);
     void start(uint16_t queue, nfq_callback *callback, void *data);
-    void start(uint16_t address_family, uint16_t queue);
-    void start(uint16_t address_family, uint16_t queue, nfq_callback *callback, void *data);
+    void start(uint16_t queue, uint16_t address_family);
+    void start(uint16_t queue, nfq_callback *callback, void *data, uint16_t address_family);
     void stop();
 
 private:
@@ -52,7 +52,7 @@ private:
     int received_size;
     pthread_t job;
 
-    void open(uint16_t address_family, uint16_t queue, nfq_callback *callback, void *data);
+    void open(uint16_t queue, nfq_callback *callback, void *data, uint16_t address_family);
 
 private:
     // Flags

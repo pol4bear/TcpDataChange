@@ -29,7 +29,7 @@ public:
     bool is_started();
 
     void start(uint16_t queue = NetfilterManager::DEFAULT_QUEUE_NUM);
-    void start(uint16_t address_family, uint16_t queue);
+    void start(uint16_t queue, uint16_t address_family);
     void stop();
 
 private:

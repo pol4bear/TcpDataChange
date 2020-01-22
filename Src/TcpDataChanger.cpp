@@ -62,7 +62,7 @@ void TcpDataChanger::start(uint16_t queue) {
     } catch(NetfilterManager::Error::Code error_code) { on_error(error_code); }
 }
 
-void TcpDataChanger::start(uint16_t address_family, uint16_t queue) {
+void TcpDataChanger::start(uint16_t queue, uint16_t address_family) {
     try {
         netfilter_manager.start(queue, data_change, &word_map, address_family);
     } catch(NetfilterManager::Error::Code error_code) { on_error(error_code); }

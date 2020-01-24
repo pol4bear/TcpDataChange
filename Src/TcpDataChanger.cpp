@@ -45,7 +45,7 @@ int TcpDataChanger::data_change(nfq_q_handle *queue_handle, nfgenmsg *message, n
     tcp_seq seq_diff, ack_diff;
     if(flow_manager.get_sequence_diffs(seq_diff, ack_diff, tcp_packet.src, tcp_packet.dst)) {
         tcp_packet.tcp_header->th_seq += seq_diff;
-        tcp_packet.tcp_header->th_ack += ack_diff;
+        tcp_packet.tcp_header->th_ack -= ack_diff;
     }
    flow_manager.apply(tcp_packet.src, tcp_packet.dst, payload.size() - tcp_packet.payload_length);
    tcp_packet.set_payload(payload);

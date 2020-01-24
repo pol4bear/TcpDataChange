@@ -23,8 +23,8 @@ bool TcpFlowManager::get_sequence_diffs(tcp_seq &seq_diff, tcp_seq &ack_diff, Ip
         ack_diff = htonl(flow_value.ack_diff);
     }
     else {
-        seq_diff = htonl(flow_value.seq_diff);
-        ack_diff = htonl(flow_value.ack_diff);
+        seq_diff = htonl(flow_value.ack_diff);
+        ack_diff = htonl(flow_value.seq_diff);
     }
 
     if (flow_value.close)
